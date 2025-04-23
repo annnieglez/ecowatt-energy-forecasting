@@ -361,6 +361,7 @@ def create_carbon_columns(data_frame):
     df = data_frame.copy()
 
     # Create new columns based on the original column
+
     df['low_vs_fossil'] = df['low_carbon'] / df['fossil']
     df['zero_vs_fossil'] = df['zero_carbon'] / df['fossil']
     df['renewable_vs_fossil'] = df['renewable'] / df['fossil']
@@ -368,7 +369,7 @@ def create_carbon_columns(data_frame):
 
     return df
 
-def create_rolling_features(data_frame, columns, type= 'hours', window_size=48):
+def create_rolling_features(data_frame, columns, type= 'hours', window_size=48, pos = 10):
     '''
     Creates rolling mean and standard deviation features for specified columns.
     
@@ -391,13 +392,20 @@ def create_rolling_features(data_frame, columns, type= 'hours', window_size=48):
             window = window_size * 2
         elif type == 'days':
             window = window_size * 48
+        elif type == 'months':
+            window = window_size * 48 * 30
+        elif type == 'years':
+            window = window_size * 48 * 365
         else:
-            raise ValueError("Invalid type. Choose from 'weeks', 'hours', or 'days'.")
+            raise ValueError("Invalid type. Choose from 'weeks', 'hours', 'days', 'months', or 'years'.")
         
-        df[f'{column}_rolling_{window_size}_{type}'] = df[column].rolling(window=window).mean()
-        df[f'{column}_rolling_std_{window_size}_{type}'] = df[column].rolling(window=window).std()
-        df[f'{column}_rolling_max_{window_size}_{type}'] = df[column].rolling(window=window).max()
-        df[f'{column}_rolling_min_{window_size}_{type}'] = df[column].rolling(window=window).min()
+        shift_label = ["30_min", "1_hour", "2_hour", "3_hours", "6_hours", "12_hours", "1_day", "2_days", "3_days", "5_days", "1_week", "2_week"]
+        shift_size = [1, 2, 4, 6, 12, 24, 48, 96, 144, 240, 336, 672]
+
+        df[f'{column}_rolling_{window_size}_{type}_for_{shift_label[pos]}'] = df[column].rolling(window=window).mean().shift(shift_size[pos])
+        df[f'{column}_rolling_std_{window_size}_{type}_for_{shift_label[pos]}'] = df[column].rolling(window=window).std().shift(shift_size[pos])
+        df[f'{column}_rolling_max_{window_size}_{type}_for_{shift_label[pos]}'] = df[column].rolling(window=window).max().shift(shift_size[pos])
+        df[f'{column}_rolling_min_{window_size}_{type}_for_{shift_label[pos]}'] = df[column].rolling(window=window).min().shift(shift_size[pos])
     
     return df
 
@@ -451,8 +459,74 @@ def check_time_increase(data_frame, time_col, price_col):
     df2.sort_values(by=[time_col], inplace=True)
     return df2.reset_index(drop=True)
 
+def check_time_increase_in_weather(data_frame, time_col):
+    '''
+    Checks if the time column increases by one hour. If not, it fills in missing rows with average prices.
+    
+    Parameters:
+        - data_frame (pd.DataFrame): The input DataFrame with time and price columns.
+        - time_col (str): The name of the time column.
+        - price_col (str): The name of the price column.
+    
+    Returns:
+        - pd.DataFrame: The modified DataFrame with filled missing rows and adjusted prices.
+    '''
 
-def create_lag_features(data_frame, columns, type= 'hours', window_size=48):
+    df = data_frame.copy()
+    df2 = df.copy()
+
+    # Remove timezone for logic checks
+    df[time_col] = pd.to_datetime(df[time_col]).dt.tz_localize(None)
+    df2[time_col] = pd.to_datetime(df2[time_col]).dt.tz_localize(None)
+
+    # Sort by time
+    df.sort_values(by=[time_col], inplace=True)
+    df2.sort_values(by=[time_col], inplace=True)
+
+    # Get numeric columns to process
+    numeric_cols = df.drop(columns=[time_col]).columns.tolist()
+
+    # Loop through and check for time issues
+    for i in range(1, len(df)):
+        current_time = df.iloc[i][time_col]
+        previous_time = df.iloc[i - 1][time_col]
+
+        # Case 1: Missing hour(s)
+        if current_time - previous_time > pd.Timedelta(hours=1):
+            missing_hours = int((current_time - previous_time).total_seconds() / 3600) - 1
+            for j in range(1, missing_hours + 1):
+                new_time = previous_time + pd.Timedelta(hours=j)
+                new_row = {time_col: new_time}
+
+                for col in numeric_cols:
+                    avg_val = df[
+                        (df[time_col] < new_time) &
+                        (df[time_col] >= new_time - pd.Timedelta(weeks=3))
+                    ][col].mean()
+                    new_row[col] = avg_val
+
+                df2 = pd.concat([df2, pd.DataFrame([new_row])], ignore_index=False)
+                print(f"🕑 Added missing row for: {new_time} → interpolated values")
+
+        # Case 2: Duplicate time
+        elif current_time == previous_time:
+            prev_index = df.index[i - 1]
+            dup_index = df.index[i]
+
+            for col in numeric_cols:
+                avg_val = (df.iloc[i][col] + df.iloc[i - 1][col]) / 2
+                df2.at[prev_index, col] = avg_val
+
+            df2.drop(index=dup_index, inplace=True)
+            print(f"⚠️ Removed duplicate for time: {current_time} → averaged values")
+
+    # Final sort & reset index
+    df2.sort_values(by=[time_col], inplace=True)
+    return df2.reset_index(drop=True)
+
+
+
+def create_lag_features(data_frame, columns, type= 'hours', window_size=48,pos = 0):
 
     df = data_frame.copy()
 
@@ -463,11 +537,20 @@ def create_lag_features(data_frame, columns, type= 'hours', window_size=48):
         elif type == 'hours':
             window = window_size * 2
         elif type == 'days':
-            window = window_size * 48
+            window =window_size * 48
+        elif type == 'months':
+            window = window_size * 48 * 30
+        elif type == 'years':
+            window = window_size * 48 * 365
         else:
-            raise ValueError("Invalid type. Choose from 'weeks', 'hours', or 'days'.")
+            raise ValueError("Invalid type. Choose from 'weeks', 'hours', 'days', 'months', or 'years'.")
         
-        df[f'{column}_lag_{window_size}_{type}'] = df[column].shift(window)    
+
+        shift_label = ["30_min", "1_hour", "2_hour", "3_hours", "6_hours", "12_hours", "1_day", "2_days", "3_days", "5_days", "1_week", "2_week"]
+        shift_size = [1, 2, 4, 6, 12, 24, 48, 96, 144, 240, 336, 672]
+
+        df[f'{column}_lag_{window_size}_{type}_for_{shift_label[pos]}'] = df[column].shift(shift_size[pos]).shift(window)    
+
     return df
 
 def drop_nan_rows(data_frame):

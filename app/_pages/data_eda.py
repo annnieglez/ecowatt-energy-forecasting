@@ -12,6 +12,8 @@ from datetime import timedelta, datetime
 
 # Data Libraries
 import pandas as pd
+
+# Visualization Libraries
 import plotly.express as px
 
 # Data path relative to current script
@@ -62,15 +64,37 @@ def data_eda_page():
     latest_generation = latest_row["generation"]-latest_row["imports"]
     latest_carbon_intensity = latest_row["carbon_intensity"]
 
-    # Display latest summary metrics
+    # Mean summary metrics
+    mean_demand = df["nd"].mean()
+    mean_generation = df["generation"].mean() - df["imports"].mean()
+ 
+
+    if latest_carbon_intensity > 200:  
+        carbon_intensity_color = 'red'
+    elif latest_carbon_intensity > 100: 
+        carbon_intensity_color = 'orange'
+    else:
+        carbon_intensity_color = 'green'
+
+    if latest_generation > mean_demand:
+        generation_color = 'red'
+    else:
+        generation_color = 'green'
+
+    if latest_demand > mean_generation:
+        demand_color = 'red'
+    else:
+        demand_color = 'green'
+
+    # Display latest summary metrics with color styling
     with st.container():
         st.markdown("### 🔍 Latest Report Summary")
-        col_a, col_b, col_c, col_d = st.columns([2.5,2,2,2])
+        col_a, col_b, col_c, col_d = st.columns([2.5, 2, 2, 2])
         col_a.metric("📅 Date", latest_timestamp.strftime('%Y-%m-%d %H:%M'))
-        col_b.metric("⚡ National Demand", f"{latest_demand:,.0f} MW")
-        col_c.metric("🏭 Generation", f"{latest_generation:.0f} MW")
-        col_d.metric("💨 Carbon Intensity", f"{latest_carbon_intensity:.0f} gCO₂/kWh")
-
+        col_b.markdown(f"<div style='font-size:1.0em;'>⚡ National Demand:</div><div style='color:{demand_color}; font-size:2.2em; margin-top:-5.1px;'>{latest_demand:,.0f} MW</div>", unsafe_allow_html=True)
+        col_c.markdown(f"<div style='font-size:1.0em;'>🏭 Generation:</div><div style='color:{generation_color}; font-size:2.2em; margin-top:-5.1px;'>{latest_generation:.0f} MW</div>", unsafe_allow_html=True)
+        col_d.markdown(f"<div style='font-size:1.0em;'>💨 Carbon Intensity:</div><div style='color:{carbon_intensity_color}; font-size:2.2em; margin-top:-5.1px;'>{latest_carbon_intensity:.0f} gCO₂/kWh</div>", unsafe_allow_html=True)
+    
     # Default date range: last 14 days from the latest date in the dataset
     default_end = df['settlement_date'].max()
     default_start = default_end - timedelta(days=14)
