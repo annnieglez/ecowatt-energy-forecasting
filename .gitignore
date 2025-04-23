@@ -176,7 +176,7 @@ cython_debug/
 
 # Custom files
 *.csv
-api.ipynb
-data_collection_and_cleaning.ipynb
+api_copy.ipynb
+data_collection_and_cleaning__copy.ipynb
 data_collection_and_cleaning_copy.ipynb
 data_collection_and_cleaning_copy_2.ipynb

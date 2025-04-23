@@ -58,7 +58,7 @@ def collect_data(resource_id, SELECTED_COLUMNS, order_by):
 def filter_demand_data_update(dataframe):
 
   # Load the existing merged data
-  uk_demand_merged = pd.read_csv(os.path.join(uk_demand_path, "uk_demand_merged_update.csv"))
+  uk_demand_merged = pd.read_csv(os.path.join(uk_demand_path, "uk_demand_merged.csv"))
   
   # Copy the new data to avoid modifying the original dataframe
   df = dataframe.copy()
@@ -100,8 +100,7 @@ def filter_demand_data_update(dataframe):
 
     # Add holiday column
     uk_demand_update_cleaned = dc.add_holiday_column(uk_demand_update_cleaned, bank_holidays) 
-    print("Last update:", len(uk_demand_update_cleaned))
-    print(uk_demand_update_cleaned.head(1))
+
     # Concatenate the new data with the existing data
     uk_demand_merged_update = pd.concat([uk_demand_merged, uk_demand_update_cleaned], ignore_index=True)
     

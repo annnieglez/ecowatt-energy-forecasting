@@ -67,7 +67,8 @@ def main():
     #    st.write("Please enter your OpenAI API Key in the sidebar to continue...")
 
     elif selected == "Forecast Model Results":
-        ml.show_model_results()
+        #ml.show_model_results()
+        st.write("Please enter your OpenAI API Key in the sidebar to continue...")
 
 if __name__ == "__main__":
     main()
