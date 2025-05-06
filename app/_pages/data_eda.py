@@ -47,7 +47,7 @@ def data_eda_page():
     )
 
     # Load and Prepare Data
-    df = pd.read_csv(os.path.join(data_path, "data_uk_merged_generation_demand.csv"))
+    df = pd.read_csv(os.path.join(data_path, "data_uk_merged_generation_demand_update.csv"))
 
     # Rename columns for better readability in the plot
     df.rename(columns={'solar': 'Solar', 'wind': 'Wind', 'hydro': 'Hydro', 'nuclear': 'Nuclear', 'gas': 'Gas', 'coal': 'Coal', 'biomass': 'Biomass', 'other': 'Other', 'wind_emb': 'Wind Embedded'}, inplace=True)

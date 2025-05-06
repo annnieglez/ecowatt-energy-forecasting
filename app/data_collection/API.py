@@ -58,7 +58,7 @@ def collect_data(resource_id, SELECTED_COLUMNS, order_by):
 def filter_demand_data_update(dataframe):
 
   # Load the existing merged data
-  uk_demand_merged = pd.read_csv(os.path.join(uk_demand_path, "uk_demand_merged.csv"))
+  uk_demand_merged = pd.read_csv(os.path.join(data_path, "uk_demand_merged_update.csv"))
   
   # Copy the new data to avoid modifying the original dataframe
   df = dataframe.copy()
@@ -107,14 +107,14 @@ def filter_demand_data_update(dataframe):
     # Rewrite the existing file with the new data
     uk_demand_merged_update = uk_demand_merged_update.sort_values(by=["settlement_date", "settlement_period"])
     uk_demand_merged_update = uk_demand_merged_update.reset_index(drop=True)
-    uk_demand_merged_update.to_csv(os.path.join(uk_demand_path, "uk_demand_merged_update.csv"), index=False)
+    uk_demand_merged_update.to_csv(os.path.join(data_path, "uk_demand_merged_update.csv"), index=False)
 
     return uk_demand_merged_update
 
 def filter_carbon_data_update(dataframe):
 
   # Load the existing data
-  carbon_mix = pd.read_csv(os.path.join(uk_carbon_mix_path, "carbon_and_mix.csv"))
+  carbon_mix = pd.read_csv(os.path.join(data_path, "carbon_and_mix_update.csv"))
   
   # Copy the new data to avoid modifying the original dataframe
   df = dataframe.copy()
@@ -128,8 +128,12 @@ def filter_carbon_data_update(dataframe):
   # Convert to datetime format
   carbon_mix = dc.convert_to_datetime(carbon_mix, columns=["settlement_date"])
   carbon_mix_update = dc.convert_to_datetime(carbon_mix_update, columns=["datetime"]) 
+
   # Drop the generation_perc column
   carbon_mix_update_cleaned = carbon_mix_update.drop(columns=["generation_perc"])
+
+  # Dropping other columns that are not needed.
+  carbon_mix_update_cleaned = carbon_mix_update_cleaned.drop(columns=[col for col in carbon_mix_update_cleaned.columns if 'perc' in col])
 
   # Extracting setellment period and settlement date from datetime
   carbon_mix_update_cleaned = dc.extract_settlement_period_and_date(carbon_mix_update_cleaned, "datetime")
@@ -158,16 +162,14 @@ def filter_carbon_data_update(dataframe):
   else:
     print("New data available for update.")
 
-    numeric_columns = ['low_carbon', 'fossil', 'zero_carbon', 'renewable', 'renewable_perc',
-                       'nuclear', 'hydro_perc', 'storage', 'imports_perc', 'solar_perc',
-                       'low_carbon_perc', 'biomass_perc', 'hydro', 'storage_perc',
-                       'wind_perc', 'wind_emb', 'imports', 'gas', 'coal_perc',
-                       'carbon_intensity', 'coal', 'fossil_perc', 'generation', 'other',
-                       'nuclear_perc', 'wind_emb_perc', 'biomass', 
-                       'gas_perc', 'other_perc', 'wind', 'solar', 'zero_carbon_perc']
+    numeric_columns = ['low_carbon', 'fossil', 'zero_carbon', 'renewable',
+                       'nuclear', 'storage', 'hydro', 'wind_emb', 'imports', 'gas',
+                       'carbon_intensity', 'coal', 'generation', 'other',
+                       'biomass', 'wind', 'solar']
 
     for col in numeric_columns:
         if col in carbon_mix_update_cleaned.columns:
+            
             # Convert to numeric, forcing errors to NaN
             carbon_mix_update_cleaned[col] = pd.to_numeric(carbon_mix_update_cleaned[col], errors='coerce')
         else:
@@ -185,7 +187,7 @@ def filter_carbon_data_update(dataframe):
     # Rewrite the existing file with the new data
     carbon_mix_update_cleaned_merge = carbon_mix_update_cleaned_merge.sort_values(by=["settlement_date", "settlement_period"])
     carbon_mix_update_cleaned_merge = carbon_mix_update_cleaned_merge.reset_index(drop=True)
-    carbon_mix_update_cleaned_merge.to_csv(os.path.join(uk_carbon_mix_path, "carbon_and_mix.csv"), index=False)
+    carbon_mix_update_cleaned_merge.to_csv(os.path.join(data_path, "carbon_and_mix_update.csv"), index=False)
 
     return carbon_mix_update_cleaned_merge
 
@@ -223,4 +225,4 @@ def update_database():
   data_uk_merged = dc.drop_nan_rows(data_uk_merged)
   data_uk_merged = data_uk_merged.sort_values(by=["settlement_date", "settlement_period"])
   data_uk_merged = data_uk_merged.reset_index(drop=True)
-  data_uk_merged.to_csv(os.path.join(data_path, "data_uk_merged_generation_demand.csv"), index=False)
+  data_uk_merged.to_csv(os.path.join(data_path, "data_uk_merged_generation_demand_update.csv"), index=False)

@@ -9,6 +9,3 @@ This folder contains CSV files related to electricity demand in the UK.
 
 ## Usage
 These files can be used for energy forecasting, trend analysis, and other data-driven insights.
-
-## Notes
-- The `API.py` script that runs when opening the Streamlit app checks `uk_demand_merge_update` and updates it.

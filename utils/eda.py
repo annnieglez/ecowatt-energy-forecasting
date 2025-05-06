@@ -75,7 +75,7 @@ def plot_box_plots(dataframe, x, y, title):
     sns.boxplot(x=df[x], y=df[y],
                 data=df,
                 palette='rocket',
-                hue=df["is_bank_holiday"],
+                hue=df["year"],
                 showfliers= True,
                 legend=False)
     plt.title(f"{title}")
